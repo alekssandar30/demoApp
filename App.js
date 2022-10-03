@@ -23,6 +23,8 @@ import {
   Colors
 } from 'react-native/Libraries/NewAppScreen';
 import MapboxGL, {Logger } from '@rnmapbox/maps';
+import { PermissionsAndroid } from 'react-native';
+
 
 const tokenMapbox = "sk.eyJ1IjoiYWxla3NzYW5kYXIzMCIsImEiOiJjbDhweHJtdnUxNjRkNDFsaHlqdzJjbngzIn0.CiEJk1RLoCvzyAXdqqG_-g";
 
@@ -61,7 +63,7 @@ const defaultStyle = {
 };
 
 const App = () => {
-  const [homeCoords, setHomeCoords] = React.useState([19.831120, 45.244200]);
+  const [homeCoords, setHomeCoords] = React.useState([19.83112, 45.2442]);
   const [zoomLevel, setZoomLevel] = React.useState(15);
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -69,13 +71,37 @@ const App = () => {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-
   React.useEffect(() => {
-
     MapboxGL.setTelemetryEnabled(false);
-  
+    requestLocationPermission();
+    MapboxGL.locationManager.start();
+
+    return () => {
+      MapboxGL.locationManager.stop();
+    };
     
   }, []);
+
+  async function requestLocationPermission() {
+     try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          'title': 'Example App',
+          'message': 'Example App access to your location '
+        }
+      )
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log("You can use the location")
+        alert("You can use the location");
+      } else {
+        console.log("location permission denied")
+        alert("Location permission denied");
+      }
+    } catch (err) {
+      console.warn(err)
+    }
+  }
 
   const zoomIn = () => {
     setZoomLevel((prevZoom) =>  prevZoom + 1);
@@ -83,6 +109,14 @@ const App = () => {
 
   const zoomOut = () => {
     setZoomLevel((prevZoom) =>  prevZoom - 1);
+  }
+
+  const onUserMarkerPress = (): void => {
+    Alert.alert('You pressed on the user location annotation');
+  };
+
+  const refreshCoords = (e) => {
+    console.log(e);
   }
 
   // edit logging messages
@@ -111,9 +145,17 @@ const App = () => {
         <MapboxGL.MapView style={styles.map}>
           <MapboxGL.Camera
               zoomLevel={zoomLevel}
-              centerCoordinate={homeCoords}
+          />
+          {/* <MapboxGL.PointAnnotation coordinate={homeCoords} /> */}
+          {/* <MapboxGL.UserLocation onPress={onUserMarkerPress} onUpdate={(e) => refreshCoords(e)} /> */}
+          <MapboxGL.UserLocation visible={true} onPress={onUserMarkerPress} onUpdate={(e) => refreshCoords(e)} />
+          <MapboxGL.Camera
+                followZoomLevel={17} //followUserLocation
+                followUserMode={'normal'}
+                followUserLocation={true}
+                followZoomLevel={17}
+                animationDuration={1000}
             />
-          <MapboxGL.PointAnnotation coordinate={homeCoords} />
         </MapboxGL.MapView>
       </View>
    
